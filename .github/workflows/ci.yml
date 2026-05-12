@@ -30,8 +30,11 @@ jobs:
 
       - name: Generate Android platform scaffolding
         # Creates the missing android/ directory without touching existing files.
-        # --project-name must match pubspec.yaml `name`.
-        run: flutter create --project-name nud_game --platforms android .
+        # flutter create also emits a generic test/widget_test.dart; remove it
+        # because our project has its own tests in test/nud_game_test.dart.
+        run: |
+          flutter create --project-name nud_game --platforms android .
+          rm -f test/widget_test.dart
 
       - name: Install dependencies
         run: flutter pub get
