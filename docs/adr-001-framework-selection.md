@@ -1,77 +1,58 @@
-# Tech Stack Decision — NUD Game Engine
+# ADR-001: 2D Game Framework Selection
 
 **Date:** 2026-05-12  
-**Author:** CTO (NUD-2)  
-**Status:** Accepted
+**Status:** Accepted  
+**Deciders:** CTO
+
+---
+
+## Context
+
+NUD is a mobile-first 2D game company. We need a framework that:
+- Targets iOS and Android from a single codebase
+- Delivers smooth frame rates (60 fps) on mid-range devices
+- Provides fast iteration / hot-reload for game-feel tuning
+- Has a strong ecosystem and long-term support guarantees
+- Minimises battery and memory overhead
+
+### Options Evaluated
+
+| Framework | Language | Mobile perf | Iteration speed | Maturity | Notes |
+|-----------|----------|------------|-----------------|----------|-------|
+| **Flutter + Flame** | Dart | ★★★★★ | ★★★★★ | ★★★★ | AOT, Skia/Impeller, native widgets possible |
+| Godot 4 | GDScript / C# | ★★★★ | ★★★★ | ★★★★ | Excellent editor; mobile export can lag behind desktop |
+| Unity | C# | ★★★★ | ★★★ | ★★★★★ | Heavy toolchain; licensing changes add risk |
+| Phaser | JavaScript | ★★★ | ★★★★ | ★★★★ | WebGL-first; Capacitor wrapping adds overhead |
 
 ---
 
 ## Decision
 
-**Flutter 3.22 + Flame 1.18** is the chosen stack for NUD's 2D mobile game.
+**Flutter + Flame**
+
+### Rationale
+
+1. **Mobile-first performance.** Flutter compiles Dart to native ARM via AOT. The Impeller renderer eliminates shader compilation jank — a common cause of frame drops on first play. Benchmarks show 60 fps on mid-range Android with complex sprite counts well above what we expect in v1.
+
+2. **Single codebase, true native.** One Dart project produces an optimised iOS IPA and Android APK. No JS bridge, no WebView.
+
+3. **Fast iteration.** Flutter's hot-reload refreshes the running game in < 1 s. Combined with Flame's component system this is the fastest game-feel tuning loop of the evaluated options.
+
+4. **Flame is purpose-built for 2D.** Flame 1.18 ships with a component-entity system, collision detection, tiled map support, camera, effects, and a sprite animation API — covering the full feature set of a mobile 2D game without needing additional plugins.
+
+5. **Ecosystem health.** Flutter is Google-backed with a massive pub.dev ecosystem. Flame is actively maintained with regular releases tracking Flutter stable.
+
+6. **No licensing risk.** Both Flutter and Flame are BSD/MIT open-source. No revenue-split or seat-based fee (contrast with Unity's runtime fee controversy).
+
+### Trade-offs Accepted
+
+- **No visual editor.** Unlike Godot or Unity, Flame has no drag-and-drop scene editor. Scenes are coded in Dart. This is acceptable for a small founding team writing code directly.
+- **Dart.** Dart is less common than C# or JavaScript. Onboarding engineers requires learning Dart — but it is approachable for anyone with Java/Kotlin/TypeScript experience.
 
 ---
 
-## Options Considered
+## Consequences
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Flutter + Flame** ✅ | Mobile-first, hot reload, single codebase (iOS/Android/web), Dart compiles to native ARM, no licensing, active community | Smaller ecosystem than Unity |
-| Godot 4 | Mature 2D support, GDScript ergonomics, free | Separate editor + project format, harder CI, GDScript learning curve |
-| Unity | Industry standard, huge asset store | Per-seat licensing costs, heavy, splash-screen requirement below revenue threshold |
-| Phaser (web) | Fast web prototyping, JS/TS | Web-first; mobile requires WebView wrapper — poor native perf |
-
----
-
-## Rationale
-
-1. **Mobile-first performance.** Flutter targets iOS and Android with native rendering via Impeller. Flame draws directly on Flutter's canvas at 60 fps+ without a JavaScript bridge.
-
-2. **Single codebase.** One Dart project ships to iOS, Android, and the web. No per-platform divergence on logic or physics.
-
-3. **Fast iteration (hot reload).** Dart's hot reload lets us tweak game feel parameters in under a second — critical for tuning. No equivalent exists in Godot's native export or Unity mobile pipeline.
-
-4. **No licensing costs.** Flutter and Flame are both open-source and free at any revenue level. Unity's runtime fee model adds unpredictable cost at scale.
-
-5. **Flame is production-proven.** Multiple shipped 2D mobile titles (Gravity Eel, Tomb of the Mask clones, puzzle games) demonstrate Flame handles sprite batching, tile maps, physics via `forge2d`, and audio without gaps.
-
-6. **Team velocity.** Dart is close enough to TypeScript/Kotlin that any mobile or web engineer can be productive within days.
-
----
-
-## Architecture Overview
-
-```
-nud_game/
-├── lib/
-│   ├── main.dart          # Flutter entry point → GameWidget
-│   ├── game/
-│   │   └── nud_game.dart  # FlameGame root — hosts worlds & scenes
-│   └── screens/           # Flutter overlay screens (menus, HUD, shop)
-├── assets/
-│   ├── images/            # Sprites, tilesets (PNG/WebP)
-│   └── audio/             # SFX and music (OGG/MP3)
-├── test/                  # Widget + unit tests
-└── .github/workflows/     # CI: lint → test → build Android → build iOS
-```
-
----
-
-## Dependencies
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `flame` | `^1.18` | 2D game loop, sprite, component system |
-| `flame_audio` | `^2.1` | Pooled audio (SFX/BGM) |
-| `flutter_lints` | `^4.0` | Dart lint rules |
-| `very_good_analysis` | `^6.0` | Strict analysis baseline |
-
----
-
-## Risks & Mitigations
-
-| Risk | Mitigation |
-|------|------------|
-| Flame missing a feature we need | Flame has escape hatches to raw Flutter canvas; we can write custom renderers |
-| 3D pivot later | Godot or Unity migration is well-documented; Flame code stays in Dart so logic is portable |
-| iOS App Store review | Same process as any Flutter app; no extra review steps |
+- All game code is Dart/Flutter. Engineers hired must know or be willing to learn Dart.
+- CI builds an Android APK on every PR; iOS builds run on macOS runners when needed.
+- Godot and Unity remain on the table for a potential future 3D expansion, but will not be introduced for the current 2D game slate.
