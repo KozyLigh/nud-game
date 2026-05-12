@@ -22,6 +22,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Set up Java (for Android builds)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate platform scaffolding
+        # Creates missing android/ and ios/ Gradle/Xcode projects in-place.
+        # --project-name must match pubspec.yaml `name`.
+        run: flutter create --project-name nud_game --overwrite .
+
       - name: Install dependencies
         run: flutter pub get
 
@@ -33,6 +44,3 @@ jobs:
 
       - name: Build Android APK (debug)
         run: flutter build apk --debug
-        env:
-          # Avoid needing a keystore for debug builds
-          FLUTTER_BUILD_MODE: debug
