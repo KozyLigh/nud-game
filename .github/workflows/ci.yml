@@ -28,10 +28,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Generate platform scaffolding
-        # Creates missing android/ and ios/ Gradle/Xcode projects in-place.
+      - name: Generate Android platform scaffolding
+        # Creates the missing android/ directory without touching existing files.
         # --project-name must match pubspec.yaml `name`.
-        run: flutter create --project-name nud_game --overwrite .
+        run: flutter create --project-name nud_game --platforms android .
 
       - name: Install dependencies
         run: flutter pub get
